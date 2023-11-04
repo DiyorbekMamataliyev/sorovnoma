@@ -1,0 +1,17 @@
+Vaqt: 2023-10-31 17:00:19.495846+05:00
+
+1-sektor MFYlari o'rtasida so'rovnoma
+id:2
+So'rovnoma guruhi:MFYlar
+
+Ovozlar:
+Bog' MFY: 1 ta ovoz
+Yoshlik MFY: 0 ta ovoz
+G'uncha MFY: 0 ta ovoz
+
+Bog' MFY:
+1) 5966844119 | . | @Buhambittanomda
+
+Yoshlik MFY:
+
+G'uncha MFY:
