@@ -1,15 +1,15 @@
 import datetime
 import time
 
-import aiogram
 from aiogram import types
-from aiogram.dispatcher.filters.builtin import CommandHelp, Command
+from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters.builtin import Command
 from aiogram.types import InputFile
 
 from keyboards.default.menuKeyboard import admin
 from loader import dp, db, bot
 from states.anketa import data
-from aiogram.dispatcher import FSMContext
+from .start import send_captcha
 
 ADMINS = [1350025588, 954723360, 996596288]
 
@@ -18,6 +18,12 @@ ADMINS = [1350025588, 954723360, 996596288]
 async def bot_help(message: types.Message):
     if message.from_user.id in ADMINS:
         await message.answer("Admin buyruqlari:", reply_markup=admin)
+
+
+@dp.message_handler(Command("captcha"), user_id=ADMINS)
+async def bot_help(message: types.Message):
+    for i in range(3):
+        await send_captcha(message.from_user.id)
 
 
 ###REKLAMA YUBORISH

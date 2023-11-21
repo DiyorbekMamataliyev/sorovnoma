@@ -229,6 +229,54 @@ class Database:
     def delete_users(self):
         self.execute("DELETE FROM Users WHERE TRUE", commit=True)
 
+    def create_table_channels(self):
+        sql = """
+            CREATE TABLE Channels (
+                id varchar(40) NULL
+                );
+    """
+        self.execute(sql, commit=True)
+
+    def select_all_channels(self):
+        sql = """
+        SELECT * FROM Channels ORDER BY id DESC
+        """
+        return self.execute(sql, fetchall=True)
+
+    def add_channel(self, id: str):
+        # SQL_EXAMPLE = "INSERT INTO Users(id, Name, email) VALUES(1, 'John', 'John@gmail.com')"
+
+        sql = """
+        INSERT INTO Channels(id) VALUES(?)
+        """
+        self.execute(sql, parameters=(id,), commit=True)
+
+    def delete_channel(self, s_id):
+        self.execute("DELETE FROM Channels WHERE id=?", parameters=(s_id,), commit=True)
+
+    def create_table_captchas(self):
+        sql = """
+            CREATE TABLE Captchas (
+                file_id varchar(128) NOT NULL,
+                text varchar(4) NULL
+                );
+        """
+        self.execute(sql, commit=True)
+
+    def select_all_captchas(self):
+        sql = """
+        SELECT * FROM Captchas
+        """
+        return self.execute(sql, fetchall=True)
+
+    def add_captchas(self, file_id: str, text="0"):
+        # SQL_EXAMPLE = "INSERT INTO Users(id, Name, email) VALUES(1, 'John', 'John@gmail.com')"
+
+        sql = """
+        INSERT INTO Captchas(file_id, text) VALUES(?, ?)
+        """
+        self.execute(sql, parameters=(file_id, text), commit=True)
+
 
 def logger(statement):
     print(f"""

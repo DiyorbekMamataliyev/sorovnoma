@@ -1,23 +1,51 @@
 from aiogram import types
-import sqlite3
-
-from loader import dp, db, bot
-from keyboards.default.menuKeyboard import menu
-from utils.db_api.sqlite import Database
-from states.anketa import data
 from aiogram.dispatcher import FSMContext
+from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
+
+from keyboards.default.menuKeyboard import menu
+from loader import dp, db
+from states.anketa import data
 
 
 # Echo bot
 @dp.message_handler(state=data.phoneNumber, content_types=types.ContentTypes.CONTACT)
-async def contact(msg: types.Message, state: FSMContext):
-    num = msg.contact.phone_number
+async def contact(message: types.Message, state: FSMContext):
+    num = message.contact.phone_number
     if not num.startswith('+'):
         num = '+' + num
-    id = msg.from_user.id
+    id = message.from_user.id
     db.update_user_phone(id, num)
-    await msg.answer("Siz botda to'liq ro'yxatdan o'tdingiz! Endi pastdagi tugmacha orqali bemalol ovoz berishingiz mumkin!", reply_markup=menu)
-    await state.finish()
+    deeplink = ""
+    users = db.select_all_users()
+    for i in users:
+        if str(i[0]) == str(message.from_user.id):
+            deeplink = str(i[4])
+    # await message.answer(deeplink)
+    if deeplink != "0":
+        r = db.select_all_sorovnoma()
+        l = []
+        sorovnoma = deeplink.split("W")[1]
+        guruh = deeplink.split("W")[0]
+        for i in r:
+            if str(i[1]) == str(sorovnoma) and str(i[4]) == str(guruh):
+                l.append(i[2])
+        if len(l) == 0:
+            await message.reply(
+                "Bu so'rovnoma hozirda mavjud emas. Kerakli so'rovnomani tanlash uchun pastdagi tugmachalardan "
+                "foydalaning 👇", reply_markup=menu)
+        else:
+            l = list(set(l))
+            menus = ReplyKeyboardMarkup(resize_keyboard=True)
+            menus.add(KeyboardButton(text="Bekor qilish"))
+            for i in l:
+                keyboard = KeyboardButton(text=f"{i}")
+                menus.add(keyboard)
+            await message.reply(f"{sorovnoma} da kimga ovoz bermoqchisiz? Tugmachalardan foydalanib tanlang: 👇",
+                                reply_markup=menus)
+            await data.variant_tanlash.set()
+    else:
+        await message.answer("🎉 Siz botda to'liq ro'yxatdan o'tdingiz! Endi pastdagi tugmacha orqali bemalol ovoz berishingiz mumkin! 👇", reply_markup=menu)
+        await state.finish()
     # if not num.startswith('+'):
     #     num = '+' + num
     # await msg.answer("Qabul qildim")

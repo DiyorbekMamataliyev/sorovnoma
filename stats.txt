@@ -1,4 +1,4 @@
-2023-10-31 17:01:09.541627+05:00 holatiga ko'ra bot statistikasi:
+2023-11-07 07:14:45.099376+05:00 holatiga ko'ra bot statistikasi:
 
 Botdagi jami foydalanuvchilar soni: 5 ta.
 Aktiv foydalanuvchilar: 5 ta
@@ -11,25 +11,24 @@ Aktiv foydalanuvchilar:
 id:5966844119
 Tel: +6285601022513
 
-2) Diyorbek
-@Diyorbek_Mamataliyev
-id:1350025588
-Tel: +998931920621
+2) Raxmonjon Mamadaliyev
+@Raxmon77
+id:996596288
+Tel: +998998709664
 
 3) Ойбек Нарзуллаев
 @oybek_creator
 id:954723360
 Tel: +998905553233
 
-4) Sarkazm UZB
-@sarkazm_uzb
-id:5639840281
-Tel: +447884753862
-
-5) Chess Lover
+4) Chess Lover
 @MRX_uzbb
 id:6507646970
 Tel: +998882560621
+
+5) Diyorbek
+@Diyorbek_Mamataliyev
+id:1350025588
 
 Botni bloklaganlar:
 

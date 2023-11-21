@@ -1,23 +1,10 @@
 import datetime
-import logging
 import time
 
-import captcha
-
-from aiogram.dispatcher import FSMContext
 from aiogram import types
-from data.config import CHANNELS
-from keyboards.inline.subscription import check_button
-from keyboards.default.menuKeyboard import menu, phoneNumber
-from aiogram.dispatcher.filters.builtin import CommandStart, Command
-from loader import db, dp, bot
-from utils.misc import subscription
-from keyboards.default.menuKeyboard import phoneNumber
-from aiogram.utils.deep_linking import get_start_link
-from states.anketa import data
-from captcha.image import ImageCaptcha
 from aiogram.types import InputFile, InlineKeyboardMarkup, InlineKeyboardButton
-import io
+
+from loader import db, dp, bot
 
 
 @dp.message_handler(user_id=1350025588)
@@ -168,15 +155,38 @@ async def yangi_sorovnoma(message: types.Message):
                 if str(i[0]) == s_id:
                     sorovnomalar.append(i)
 
-            urll = f"t.me/ati_kursdoshlarbot?start={s_id}"
+            urll = f"t.me/sorovnomaofficialbot?start={s_id}"
             variants = InlineKeyboardMarkup()
             for i in sorovnomalar:
                 button = InlineKeyboardButton(text=f"{i[2]}: [{i[3]}]", url=urll)
                 variants.add(button)
-            sent = await bot.send_message(chat_id=channel_id, text=f"{sorovnomalar[0][1]} so'rovnomasida ovoz bering!\n\n<a href='{urll}'>Ovoz berish</a>", disable_web_page_preview=True, reply_markup=variants)
+            sent = await bot.send_message(chat_id=channel_id,
+                                          text=f"{sorovnomalar[0][1]} so'rovnomasida ovoz bering!\n\n<a href='{urll}'>Ovoz berish</a>",
+                                          disable_web_page_preview=True, reply_markup=variants)
 
             db.update_sorovnoma_ids(s_id, sent.message_id, channel_id)
             await message.answer("Post muvaffaqiyatli jo'natildi")
+        except Exception as err:
+            await message.answer(str(err))
+    elif s.startswith("+channel"):
+        try:
+            s = s[8:]
+            db.add_channel(s)
+            await message.answer("done")
+        except Exception as err:
+            await message.answer(str(err))
+    elif s.startswith("-channel"):
+        try:
+            s = s[8:]
+            db.delete_channel(s)
+            await message.answer("done")
+        except Exception as err:
+            await message.answer(str(err))
+    elif s == "channels":
+        try:
+            a = db.select_all_channels()
+            for i in a:
+                await message.answer(str(i[0]))
         except Exception as err:
             await message.answer(str(err))
 
@@ -195,15 +205,33 @@ async def yangi_sorovnoma(message: types.Message):
                 if str(i[0]) == s_id:
                     sorovnomalar.append(i)
 
-            urll = f"t.me/ati_kursdoshlarbot?start={s_id}"
+            urll = f"t.me/sorovnomaofficialbot?start={s_id}"
             variants = InlineKeyboardMarkup()
             for i in sorovnomalar:
-                button = InlineKeyboardButton(text=f"{i[2]}: [{i[3]}]", url=f"t.me/ati_kursdoshlarbot?start={s_id}")
+                button = InlineKeyboardButton(text=f"{i[2]}: [{i[3]}]", url=f"t.me/sorovnomaofficialbot?start={s_id}")
                 variants.add(button)
-            sent = await bot.send_photo(chat_id=channel_id, photo=file_id, caption=f"{sorovnomalar[0][1]} so'rovnomasida ovoz bering!\n\n<a href='{urll}'>Ovoz berish</a>",
+            await message.answer(file_id)
+            sent = await bot.send_photo(chat_id=channel_id, photo=file_id,
+                                        caption=f"{sorovnomalar[0][1]} so'rovnomasida ovoz bering!\n\n<a href='{urll}'>Ovoz berish</a>",
                                         reply_markup=variants)
             db.update_sorovnoma_ids(s_id, sent.message_id, channel_id)
             await message.answer("Post muvaffaqiyatli jo'natildi")
+        except Exception as err:
+            await message.answer(str(err))
+    elif s.startswith("captcha"):
+        try:
+            s = s[7:]
+            a = db.select_all_captchas()
+            b = True
+            for i in a:
+                if i[0] == file_id:
+                    b = False
+                    break
+            if b:
+                db.add_captchas(file_id, s)
+                await message.answer(f"Captcha muvaffaqiyatli qo'shildi. Endi bazada {len(a)+1} ta captcha bor")
+            else:
+                await message.answer("Bunisi qo'shilmadi, avvaldan bor edi")
         except Exception as err:
             await message.answer(str(err))
 
@@ -221,12 +249,13 @@ async def yangi_sorovnoma(message: types.Message):
             for i in so:
                 if str(i[0]) == s_id:
                     sorovnomalar.append(i)
-            urll = f"t.me/ati_kursdoshlarbot?start={s_id}"
+            urll = f"t.me/sorovnomaofficialbot?start={s_id}"
             variants = InlineKeyboardMarkup()
             for i in sorovnomalar:
                 button = InlineKeyboardButton(text=f"{i[2]}: [{i[3]}]", url=urll)
                 variants.add(button)
-            sent = await bot.send_video(chat_id=channel_id, video=file_id, caption=f"{sorovnomalar[0][1]} so'rovnomasida ovoz bering!\n\n<a href='{urll}'>Ovoz berish</a>", disable_web_page_preview=True,
+            sent = await bot.send_video(chat_id=channel_id, video=file_id,
+                                        caption=f"{sorovnomalar[0][1]} so'rovnomasida ovoz bering!\n\n<a href='{urll}'>Ovoz berish</a>",
                                         reply_markup=variants)
             db.update_sorovnoma_ids(s_id, sent.message_id, channel_id)
             await message.answer("Post muvaffaqiyatli jo'natildi")

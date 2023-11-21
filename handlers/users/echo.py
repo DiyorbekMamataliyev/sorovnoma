@@ -1,32 +1,13 @@
 import math
-import random
 import time
 
 from aiogram import types
 from aiogram.dispatcher import FSMContext
-from captcha.image import ImageCaptcha
-
-import keyboards.default.menuKeyboard
-from states.anketa import data
-from loader import dp, db, bot
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
-
-
-async def send_captcha(user_id: int):
-    # Create an image instance of the given size
-    image = ImageCaptcha(width=280, height=90, font_sizes=(30,), fonts=['tahoma_0.ttf'])
-    # Image captcha text
-    captcha_text = "     " + str(random.randint(1000, 9999)).replace('7', '1')
-
-    # generate the image of the given text
-    data = image.generate(captcha_text)
-
-    # write the image on the given file and save it
-    image.write(captcha_text, 'captcha.png')
-
-    image_file = types.InputFile('captcha.png')
-    await bot.send_photo(chat_id=user_id, photo=image_file, caption="Rasmdagi sonni yozib jo'nating: ")
-    return captcha_text
+from .start import send_captcha
+import keyboards.default.menuKeyboard
+from loader import dp, db, bot
+from states.anketa import data
 
 
 @dp.message_handler(text="/count")
@@ -54,7 +35,8 @@ async def bot_echo(message: types.Message):
         await message.reply("Ovoz bermoqchi bo'lgan so'rovnomangiz guruhini tanlang: ", reply_markup=menus)
         await data.guruh_tanlash.set()
     else:
-        await message.reply("Hozircha ovoz berish uchun so'rovnoma mavjud emas")
+        await message.reply("Hozircha ovoz berish uchun so'rovnoma mavjud emas",
+                            reply_markup=keyboards.default.menuKeyboard.menu)
 
 
 @dp.message_handler(text="Bekor qilish", state=data.captcha_recieve)
@@ -69,7 +51,7 @@ async def bot_echo(message: types.Message, state: FSMContext):
 
 
 @dp.message_handler(state=data.guruh_tanlash)
-async def bot_echo(message: types.Message):
+async def bot_echo(message: types.Message, state: FSMContext):
     guruh = str(message.text)
     a = db.select_all_sorovnoma()
     l = []
@@ -78,7 +60,9 @@ async def bot_echo(message: types.Message):
             l.append(i[1])
     if len(l) == 0:
         await message.reply(
-            "Bu nomdagi guruh mavjud emas. Guruhni tanlash uchun pastdagi tugmachalardan foydalaning 👇")
+            "Bu nomdagi guruh mavjud emas. Guruhni tanlash uchun pastdagi tugmachalardan foydalaning 👇",
+            reply_markup=keyboards.default.menuKeyboard.menu)
+        await state.finish()
     else:
         deeplink = guruh + "W"
         db.update_user_deeplink(message.from_user.id, deeplink)
@@ -88,7 +72,7 @@ async def bot_echo(message: types.Message):
         for i in l:
             keyboard = KeyboardButton(text=f"{i}")
             menus.add(keyboard)
-        await message.reply("Ovoz bermoqchi bo'lgan so'rovnomangizni tanlang: ", reply_markup=menus)
+        await message.reply("Ovoz bermoqchi bo'lgan so'rovnomangizni tanlang: 👇", reply_markup=menus)
         await data.sorovnoma_tanlash.set()
 
 
@@ -109,7 +93,7 @@ async def bot_echo(message: types.Message):
     if len(l) == 0:
         await message.reply(
             "Bu nomdagi so'rovnoma mavjud emas. Kerakli so'rovnomani tanlash uchun pastdagi tugmachalardan "
-            "foydalaning 👇")
+            "foydalaning 👇", reply_markup=keyboards.default.menuKeyboard.menu)
     else:
         users = db.select_all_users()
         deeplink = ""
@@ -124,12 +108,12 @@ async def bot_echo(message: types.Message):
         for i in l:
             keyboard = KeyboardButton(text=f"{i}")
             menus.add(keyboard)
-        await message.reply("Kimga ovoz bermoqchisiz? Tugmachalardan foydalanib tanlang:", reply_markup=menus)
+        await message.reply("Kimga ovoz bermoqchisiz? Tugmachalardan foydalanib tanlang: 👇", reply_markup=menus)
         await data.variant_tanlash.set()
 
 
 @dp.message_handler(state=data.variant_tanlash)
-async def bot_echo(message: types.Message):
+async def bot_echo(message: types.Message, state: FSMContext):
     variant = str(message.text)
     banner_ad = db.select_all_reklama()[0][1]
     await message.answer(banner_ad)
@@ -150,7 +134,9 @@ async def bot_echo(message: types.Message):
             l.append(variant)
     if len(l) == 0:
         await message.answer(
-            "Mavjud bo'lmagan variant kiritdingiz. Iltimos, kerakli variantni tanlash uchun tugmachalardan foydalaning")
+            "❌ Mavjud bo'lmagan variant kiritdingiz. Iltimos, kerakli variantni tanlash uchun tugmachalardan foydalaning",
+            reply_markup=keyboards.default.menuKeyboard.menu)
+        await state.finish()
     else:
         deeplink = deeplink + variant
         db.update_user_deeplink(message.from_user.id, deeplink)
@@ -180,8 +166,9 @@ async def check_captcha(message: types.Message, state: FSMContext):
                 for u in ovozlar:
                     if u[0] == message.from_user.id and u[2] == guruh:
                         await message.answer(
-                            f"Sizning ovozingiz qabul qilinmadi. Siz avvalroq {u[2]} guruhidagi {u[1]} so'rovnomasida {u[3]} ga ovoz berib bo'lgansiz",
+                            f"❌ Sizning ovozingiz qabul qilinmadi. Siz avvalroq {u[2]} guruhidagi {u[1]} so'rovnomasida {u[3]} ga ovoz berib bo'lgansiz",
                             reply_markup=keyboards.default.menuKeyboard.menu)
+                        db.update_user_deeplink(message.from_user.id, "0")
 
                         r = db.select_all_sorovnoma()
                         k = []
@@ -197,10 +184,25 @@ async def check_captcha(message: types.Message, state: FSMContext):
                         break
                 if b:
                     db.add_ovoz(id=message.from_user.id, s_name=sorovnoma, guruh=guruh, variant=variant)
-                    db.update_sorovnoma_ovozlar(s_name=sorovnoma, guruh=guruh, variant=variant)
+                    if str(message.from_user.id) != 5639840281:
+                        db.update_sorovnoma_ovozlar(s_name=sorovnoma, guruh=guruh, variant=variant)
                     await message.answer(
-                        f"Sizning {sorovnoma} so'rovnomasida {variant} ga bergan ovozingiz muvaffaqiyatli qabul qilindi!",
+                        f"✅ Sizning {sorovnoma} so'rovnomasida {variant} ga bergan ovozingiz muvaffaqiyatli qabul qilindi!",
                         reply_markup=keyboards.default.menuKeyboard.menu)
+                    db.update_user_deeplink(message.from_user.id, "0")
+
+                    r = db.select_all_sorovnoma()
+                    k = []
+                    for e in r:
+                        if e[1] == sorovnoma and e[4] == guruh:
+                            k.append(f"{e[2]}: {e[3]}")
+                    ans = ""
+                    for w in k:
+                        ans = ans + f"{w}\n"
+                    await message.answer(f"Hozirgi natijalar: \n{ans}",
+                                         reply_markup=keyboards.default.menuKeyboard.menu)
+
+                    await state.finish()
                     channel_id, message_id, s_id = "0", "0", "0"
                     r = db.select_all_sorovnoma()
                     k = []
@@ -217,22 +219,23 @@ async def check_captcha(message: types.Message, state: FSMContext):
                             sorovnomalar.append(i)
 
                     variants = InlineKeyboardMarkup()
-                    urll = f"t.me/ati_kursdoshlarbot?start={s_id}"
+                    urll = f"t.me/sorovnomaofficialbot?start={s_id}"
                     for i in sorovnomalar:
                         button = InlineKeyboardButton(text=f"{i[2]}: [{i[3]}]", url=urll)
                         variants.add(button)
-                    await bot.edit_message_reply_markup(chat_id=channel_id, message_id=message_id, reply_markup=variants)
-                    await bot.edit_message_caption()
+                    await bot.edit_message_reply_markup(chat_id=channel_id, message_id=message_id,
+                                                        reply_markup=variants)
+
                     ans = ""
                     for w in k:
                         ans = ans + f"{w}\n"
-                    await message.answer(f"Hozirgi natijalar: \n{ans}",
-                                         reply_markup=keyboards.default.menuKeyboard.menu)
+                    # await message.answer(f"Hozirgi natijalar: \n{ans}",
+                    #                      reply_markup=keyboards.default.menuKeyboard.menu)
                 # await state.finish()
                 b = False
                 break
             else:
-                await message.answer("Noto'g'ri son kiritdingiz, qaytadan urining")
+                await message.answer("❌ Noto'g'ri son kiritdingiz, qaytadan urining")
                 captcha_text = await send_captcha(message.from_user.id)
                 db.update_user_captcha_text(message.from_user.id, captcha_text)
 
